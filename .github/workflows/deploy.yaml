@@ -35,31 +35,16 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Configure kubeconfig
-      run: |
-        mkdir -p $HOME/.kube
-        chmod 700 $HOME/.kube
-        # Try base64 decode first, if fails use as plain text
-        (echo '${{ secrets.KUBE_CONFIG }}' | base64 -d > $HOME/.kube/config) || \
-          (echo '${{ secrets.KUBE_CONFIG }}' > $HOME/.kube/config)
-        chmod 600 $HOME/.kube/config
-
-    - name: Debug config file
-      run: |
-        echo "=== Raw file (hexdump first 200 bytes) ==="
-        xxd -l 200 $HOME/.kube/config || head -c 200 $HOME/.kube/config | od -c | head -20
-        echo ""
-        echo "=== First 10 lines ==="
-        head -10 $HOME/.kube/config
-        echo ""
-        echo "=== File size ==="
-        wc -c $HOME/.kube/config
+    - name: Setup kubeconfig
+      uses: azure/k8s-set-context@v1
+      with:
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
     - name: Deploy to Kubernetes
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        kubectl --kubeconfig=$HOME/.kube/config get pods
-        kubectl --kubeconfig=$HOME/.kube/config set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        kubectl --kubeconfig=$HOME/.kube/config rollout status deployment/zeenkaar-app
+        kubectl get pods
+        kubectl set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        kubectl rollout status deployment/zeenkaar-app
