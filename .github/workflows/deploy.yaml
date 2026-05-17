@@ -40,13 +40,8 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        # Write kubeconfig - handle both base64 and plain
-        if echo '${{ secrets.KUBE_CONFIG }}' | base64 -d > /tmp/kubeconfig 2>/dev/null; then
-          echo "Using base64-decoded kubeconfig"
-        else
-          echo '${{ secrets.KUBE_CONFIG }}' > /tmp/kubeconfig
-          echo "Using plain kubeconfig"
-        fi
+        # Write kubeconfig - treat as plain text directly
+        echo '${{ secrets.KUBE_CONFIG }}' > /tmp/kubeconfig
         chmod 600 /tmp/kubeconfig
         export KUBECONFIG=/tmp/kubeconfig
         echo "=== kubeconfig content ==="
