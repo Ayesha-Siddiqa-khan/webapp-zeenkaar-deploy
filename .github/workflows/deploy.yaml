@@ -35,23 +35,17 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Debug kubeconfig
+    - name: Configure kubeconfig
       run: |
-        echo "--- Checking if .kube/config exists ---"
-        ls -la $HOME/.kube/ || echo "No .kube directory found"
-        
-        echo "--- Checking KUBE_CONFIG secret length ---"
-        echo "${{ secrets.KUBE_CONFIG }}" | wc -c
-        
-        echo "--- Trying plain text (no decode) ---"
         mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-        kubectl config view
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
 
     - name: Deploy to Kubernetes
-      run: |
-        kubectl set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        kubectl rollout status deployment/zeenkaar-app
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
+        KUBECONFIG: /home/runner/.kube/config
+      run: |
+        kubectl set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        kubectl rollout status deployment/zeenkaar-app
