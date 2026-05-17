@@ -1,0 +1,22 @@
+# =============================================================================
+# Example Variables - Copy to terraform.tfvars and customize
+# =============================================================================
+
+# AWS Region
+region = "us-east-1"
+
+# EC2 AMI - Amazon Linux 2023 (free tier eligible)
+ami_id = "ami-0c55b159cbfafe1f0"
+
+# Instance Types (t3.micro is free tier eligible)
+master_instance_type = "t2.micro"
+worker_instance_type = "t3.micro"
+
+# SSH Key Pair name (must exist in AWS)
+key_name = "my-key-pair"
+
+# Existing Security Group ID
+security_group_id = "sg-0123456789abcdef0"
+
+# Project name for tagging
+project_name = "k8s-cluster"
