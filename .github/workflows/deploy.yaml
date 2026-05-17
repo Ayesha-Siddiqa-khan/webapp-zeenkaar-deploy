@@ -35,11 +35,17 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Configure kubeconfig
+    - name: Debug kubeconfig
       run: |
+        echo "--- Checking if .kube/config exists ---"
+        ls -la $HOME/.kube/ || echo "No .kube directory found"
+        
+        echo "--- Checking KUBE_CONFIG secret length ---"
+        echo "${{ secrets.KUBE_CONFIG }}" | wc -c
+        
+        echo "--- Trying plain text (no decode) ---"
         mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
-        chmod 600 $HOME/.kube/config
+        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
         kubectl config view
 
     - name: Deploy to Kubernetes
