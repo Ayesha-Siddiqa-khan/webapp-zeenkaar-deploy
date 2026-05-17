@@ -40,6 +40,13 @@ jobs:
           docker build -f Dockerfile -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "ECR_REGISTRY=$ECR_REGISTRY" >> $GITHUB_ENV
+
+      - name: Get ECR auth token
+        run: |
+          ECR_PASSWORD=$(aws ecr get-login-password --region "$AWS_REGION")
+          echo "::add-mask::$ECR_PASSWORD"
+          echo "ECR_PASSWORD=$ECR_PASSWORD" >> $GITHUB_ENV
 
       - name: Upload manifests to master
         uses: appleboy/scp-action@v0.1.7
@@ -54,14 +61,23 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           IMAGE_URI: ${{ env.IMAGE_URI }}
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          ECR_PASSWORD: ${{ env.ECR_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_URI
+          envs: IMAGE_URI,ECR_REGISTRY,ECR_PASSWORD
           script: |
             ls -la /tmp/k8s
-            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f /tmp/k8s/deployment.yaml
+            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl create secret docker-registry ecr-cred \
+              --docker-server=$ECR_REGISTRY \
+              --docker-username=AWS \
+              --docker-password=$ECR_PASSWORD \
+              --dry-run=client -o yaml | sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f -
+            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl patch serviceaccount default \
+              -p '{"imagePullSecrets":[{"name":"ecr-cred"}]}' || true
+            sed "s|IMAGE_PLACEHOLDER|$IMAGE_URI|g" /tmp/k8s/deployment.yaml | sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f -
             sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f /tmp/k8s/service.yaml
             sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl set image deployment/zeenkaar-app zeenkaar=$IMAGE_URI
             sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl rollout status deployment/zeenkaar-app
