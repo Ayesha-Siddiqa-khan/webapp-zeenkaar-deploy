@@ -51,3 +51,13 @@ jobs:
         # Update the image
         kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify rollout status deployment/zeenkaar-app
+
+    - name: Debug pod status
+      if: failure()
+      run: |
+        echo "=== Pod status ==="
+        kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify get pods -l app=zeenkaar -o wide
+        echo "=== Pod events ==="
+        kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify describe pod -l app=zeenkaar
+        echo "=== Previous logs ==="
+        kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify logs -l app=zeenkaar --previous || true
