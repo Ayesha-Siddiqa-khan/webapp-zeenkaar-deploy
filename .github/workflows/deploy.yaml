@@ -40,10 +40,18 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        # Write kubeconfig directly
-        printf '%s' '${{ secrets.KUBE_CONFIG }}' > /tmp/kubeconfig
+        # Write kubeconfig - handle both base64 and plain
+        if echo '${{ secrets.KUBE_CONFIG }}' | base64 -d > /tmp/kubeconfig 2>/dev/null; then
+          echo "Using base64-decoded kubeconfig"
+        else
+          echo '${{ secrets.KUBE_CONFIG }}' > /tmp/kubeconfig
+          echo "Using plain kubeconfig"
+        fi
         chmod 600 /tmp/kubeconfig
         export KUBECONFIG=/tmp/kubeconfig
-        kubectl config current-context
+        echo "=== kubeconfig content ==="
+        cat /tmp/kubeconfig
+        echo "=== testing kubectl ==="
+        kubectl cluster-info
         kubectl set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         kubectl rollout status deployment/zeenkaar-app
