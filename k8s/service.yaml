@@ -3,10 +3,9 @@ kind: Service
 metadata:
   name: zeenkaar-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: zeenkaar
   ports:
   - port: 80
     targetPort: 80
-    nodePort: 30080
