@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: zeenkaar
-        image: YOUR_ECR_REPOSITORY_URL:latest
+        image: placeholder:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
