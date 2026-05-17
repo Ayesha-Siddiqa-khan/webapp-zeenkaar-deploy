@@ -38,21 +38,16 @@ jobs:
     - name: Configure kubeconfig
       run: |
         mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+        chmod 700 $HOME/.kube
+        echo '${{ secrets.KUBE_CONFIG }}' > $HOME/.kube/config
         chmod 600 $HOME/.kube/config
-
-    - name: Debug kubeconfig content
-      run: |
-        echo "--- First 5 lines of kubeconfig ---"
-        head -5 $HOME/.kube/config
-        echo "--- File size ---"
-        wc -c $HOME/.kube/config
 
     - name: Deploy to Kubernetes
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
-        KUBECONFIG: /home/runner/.kube/config
       run: |
-        kubectl set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        kubectl rollout status deployment/zeenkaar-app
+        kubectl --kubeconfig=$HOME/.kube/config config view
+        kubectl --kubeconfig=$HOME/.kube/config get pods
+        kubectl --kubeconfig=$HOME/.kube/config set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        kubectl --kubeconfig=$HOME/.kube/config rollout status deployment/zeenkaar-app
