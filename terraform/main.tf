@@ -1,7 +1,3 @@
-# =============================================================================
-# VPC
-# =============================================================================
-
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
@@ -12,10 +8,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-# =============================================================================
-# Internet Gateway
-# =============================================================================
-
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
@@ -24,11 +16,6 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# =============================================================================
-# Subnets
-# =============================================================================
-
-# Master node subnet (public)
 resource "aws_subnet" "master" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.master_subnet_cidr
@@ -40,7 +27,6 @@ resource "aws_subnet" "master" {
   }
 }
 
-# Worker node subnet (public)
 resource "aws_subnet" "worker" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.worker_subnet_cidr
@@ -52,11 +38,6 @@ resource "aws_subnet" "worker" {
   }
 }
 
-# =============================================================================
-# Route Tables
-# =============================================================================
-
-# Public route table for master subnet
 resource "aws_route_table" "master" {
   vpc_id = aws_vpc.main.id
 
@@ -70,7 +51,6 @@ resource "aws_route_table" "master" {
   }
 }
 
-# Public route table for worker subnet
 resource "aws_route_table" "worker" {
   vpc_id = aws_vpc.main.id
 
@@ -83,10 +63,6 @@ resource "aws_route_table" "worker" {
     Name = "${var.project_name}-rt-worker"
   }
 }
-
-# =============================================================================
-# Route Table Associations
-# =============================================================================
 
 resource "aws_route_table_association" "master" {
   subnet_id      = aws_subnet.master.id

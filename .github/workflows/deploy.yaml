@@ -16,6 +16,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v4
+      with:
+        version: "latest"
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -37,17 +42,29 @@ jobs:
 
     - name: Decode kubeconfig
       run: |
-        echo "$KUBE_SECRET" | base64 -d > /tmp/kubeconfig
+        printf "%s" "$KUBE_SECRET" | base64 --decode > /tmp/kubeconfig
       env:
         KUBE_SECRET: ${{ secrets.KUBE_CONFIG }}
+
+    - name: Ensure ECR image pull secret
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify \
+          create secret docker-registry ecr-registry \
+          --docker-server=$ECR_REGISTRY \
+          --docker-username=AWS \
+          --docker-password=$(aws ecr get-login-password --region $AWS_REGION) \
+          --dry-run=client -o yaml | \
+          kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify apply -f -
 
     - name: Deploy to Kubernetes
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        # First, create the deployment if it doesn't exist
-        kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify apply -f k8s/deployment.yaml
+        # Apply manifests (service + deployment)
+        kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify apply -f k8s/
         # Update the image
         kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         kubectl --kubeconfig=/tmp/kubeconfig --insecure-skip-tls-verify rollout status deployment/zeenkaar-app
