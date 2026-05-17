@@ -41,22 +41,27 @@ jobs:
           docker push "$IMAGE_URI"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
-      - name: Set up kubeconfig
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-        run: |
-          mkdir -p $HOME/.kube
-          printf '%s' "$KUBE_CONFIG" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+      - name: Upload manifests to master
+        uses: appleboy/scp-action@v0.1.7
         with:
-          version: 'latest'
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "k8s/*"
+          target: "/tmp/k8s"
 
-      - name: Deploy to Kubernetes
-        run: |
-          sed "s|IMAGE_PLACEHOLDER|$IMAGE_URI|g" k8s/deployment.yaml | kubectl apply -f -
-          kubectl apply -f k8s/service.yaml
-          kubectl rollout status deployment/zeenkaar-app
+      - name: Deploy from master
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_URI: ${{ env.IMAGE_URI }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_URI
+          script: |
+            kubectl apply -f /tmp/k8s/deployment.yaml
+            kubectl apply -f /tmp/k8s/service.yaml
+            kubectl set image deployment/zeenkaar-app zeenkaar=$IMAGE_URI
+            kubectl rollout status deployment/zeenkaar-app
           
