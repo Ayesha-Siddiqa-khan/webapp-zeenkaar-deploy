@@ -35,16 +35,16 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+    - name: Setup kubectl
+      uses: azure/k8s-set-context@v1
+      with:
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
     - name: Deploy to Kubernetes
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        echo '${{ secrets.KUBE_CONFIG }}' > /tmp/kubeconfig
-        chmod 600 /tmp/kubeconfig
-        export KUBECONFIG=/tmp/kubeconfig
-        echo "=== Testing kubectl ==="
-        kubectl --kubeconfig=/tmp/kubeconfig cluster-info
-        kubectl --kubeconfig=/tmp/kubeconfig get pods
-        kubectl --kubeconfig=/tmp/kubeconfig set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        kubectl --kubeconfig=/tmp/kubeconfig rollout status deployment/zeenkaar-app
+        kubectl get pods
+        kubectl set image deployment/zeenkaar-app zeenkaar=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        kubectl rollout status deployment/zeenkaar-app
