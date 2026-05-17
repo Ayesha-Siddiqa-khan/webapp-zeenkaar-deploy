@@ -41,6 +41,13 @@ jobs:
         echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
         chmod 600 $HOME/.kube/config
 
+    - name: Debug kubeconfig content
+      run: |
+        echo "--- First 5 lines of kubeconfig ---"
+        head -5 $HOME/.kube/config
+        echo "--- File size ---"
+        wc -c $HOME/.kube/config
+
     - name: Deploy to Kubernetes
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
