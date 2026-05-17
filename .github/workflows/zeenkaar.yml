@@ -47,8 +47,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "k8s/*"
-          target: "/tmp/k8s"
+          source: "k8s"
+          target: "/tmp"
 
       - name: Deploy from master
         uses: appleboy/ssh-action@v1.0.3
@@ -60,8 +60,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: IMAGE_URI
           script: |
-            kubectl apply -f /tmp/k8s/deployment.yaml
-            kubectl apply -f /tmp/k8s/service.yaml
-            kubectl set image deployment/zeenkaar-app zeenkaar=$IMAGE_URI
-            kubectl rollout status deployment/zeenkaar-app
+            ls -la /tmp/k8s
+            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f /tmp/k8s/deployment.yaml
+            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl apply -f /tmp/k8s/service.yaml
+            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl set image deployment/zeenkaar-app zeenkaar=$IMAGE_URI
+            sudo KUBECONFIG=/etc/kubernetes/admin.conf kubectl rollout status deployment/zeenkaar-app
           
