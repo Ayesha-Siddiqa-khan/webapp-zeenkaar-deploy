@@ -10,3 +10,8 @@ resource "aws_iam_user_policy_attachment" "cluster_user_ec2" {
   user       = aws_iam_user.cluster_user.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
 }
+
+resource "aws_iam_user_policy_attachment" "cluster_user_ecr" {
+  user       = aws_iam_user.cluster_user.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+}
